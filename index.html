@@ -1,0 +1,652 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0c10">
+<meta name="description" content="Интерактивный виртуальный кокпит: KIA K5, BMW E34 и Mercedes Sprinter с живым звуком двигателя.">
+<title>Виртуальный кокпит</title>
+<style>
+:root{
+  --bg:#0a0c10;
+  --panel:#14171d;
+  --panel-light:#1c2028;
+  --border:#2a2f3a;
+  --cyan:#00d9ff;
+  --amber:#ff9500;
+  --red-warn:#ff3b3b;
+  --text:#e8edf2;
+  --text-dim:#8a93a3;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,'Segoe UI',Arial,sans-serif;
+  line-height:1.5;
+  overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+header,section,footer{position:relative;}
+section{padding:4.5rem 1.5rem;}
+section+section{border-top:1px solid rgba(255,255,255,0.05);}
+h2{
+  font-weight:900;
+  text-align:center;
+  font-size:clamp(1.4rem,5vw,2rem);
+  letter-spacing:0.04em;
+  margin-bottom:2.2rem;
+}
+h2::after{
+  content:'';
+  display:block;
+  width:56px;height:4px;
+  background:var(--cyan);
+  margin:0.7rem auto 0;
+}
+.hero{
+  min-height:100vh;min-height:100svh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:2rem 1.5rem;
+  background:radial-gradient(ellipse at 50% 30%, rgba(0,217,255,0.08), transparent 60%);
+}
+.hero h1{
+  font-weight:900;
+  font-size:clamp(2rem,9vw,4rem);
+  letter-spacing:0.02em;
+  line-height:1.15;
+  text-shadow:0 0 30px rgba(0,217,255,0.35);
+}
+.hero .subtitle{
+  margin-top:1.2rem;
+  color:var(--cyan);
+  letter-spacing:0.18em;
+  font-size:clamp(0.68rem,2vw,0.92rem);
+  font-weight:bold;
+}
+.scroll-hint{
+  margin-top:3rem;
+  color:var(--cyan);
+  font-size:1.4rem;
+  text-decoration:none;
+  animation:bounce 1.8s infinite;
+}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(10px);}}
+ 
+.car-tabs{
+  display:flex;
+  gap:0.8rem;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-bottom:2.5rem;
+}
+.car-tab{
+  background:var(--panel);
+  border:2px solid var(--border);
+  border-radius:10px;
+  padding:0.8rem 1rem;
+  color:var(--text-dim);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0.4rem;
+  transition:border-color .2s,color .2s;
+  touch-action:manipulation;
+}
+.car-tab .car-icon{width:70px;height:auto;color:var(--text-dim);transition:color .2s;}
+.car-tab span{font-size:0.72rem;font-weight:bold;letter-spacing:0.04em;}
+.car-tab.active{border-color:var(--cyan);color:var(--cyan);}
+.car-tab.active .car-icon{color:var(--cyan);}
+ 
+.dash{
+  max-width:600px;
+  margin:0 auto;
+  background:linear-gradient(180deg,var(--panel-light),var(--panel));
+  border:2px solid var(--border);
+  border-radius:16px;
+  padding:1.8rem 1.2rem;
+  box-shadow:0 15px 50px rgba(0,0,0,0.5);
+}
+.vehicle-info{text-align:center;margin-bottom:1.5rem;}
+.vehicle-name{font-size:1.25rem;font-weight:900;letter-spacing:0.02em;}
+.vehicle-sub{color:var(--cyan);font-size:0.78rem;letter-spacing:0.08em;margin-top:0.2rem;}
+ 
+.gauges-row{
+  display:flex;
+  gap:1rem;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-bottom:1.5rem;
+}
+.gauge{width:44%;min-width:150px;max-width:220px;height:auto;}
+.gauge-face{fill:var(--panel);stroke:var(--border);stroke-width:2;}
+.tick-major{stroke:var(--text-dim);stroke-width:2;}
+.tick-minor{stroke:var(--text-dim);stroke-width:1;opacity:0.5;}
+.tick-label{fill:var(--text-dim);font-size:11px;font-family:'Courier New',monospace;}
+.gauge-unit{fill:var(--text-dim);font-size:9px;letter-spacing:0.05em;}
+.redline-arc{fill:none;stroke:var(--red-warn);stroke-width:4;stroke-linecap:round;}
+.needle{stroke:var(--cyan);stroke-width:3;stroke-linecap:round;}
+.needle.danger{stroke:var(--red-warn);}
+.needle-cap{fill:var(--cyan);}
+ 
+.digital-cluster{
+  display:flex;
+  flex-wrap:wrap;
+  gap:0.8rem;
+  justify-content:center;
+  margin-bottom:1.5rem;
+}
+.digi-block{
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:0.7rem 1.1rem;
+  text-align:center;
+  min-width:120px;
+}
+.digi-label{font-size:0.62rem;color:var(--text-dim);letter-spacing:0.08em;margin-bottom:0.3rem;}
+.digi-value{font-family:'Courier New',monospace;font-size:1.7rem;font-weight:bold;color:var(--cyan);text-shadow:0 0 10px rgba(0,217,255,0.5);}
+.digi-value.small{font-size:1.1rem;}
+.warn-light{
+  width:100%;
+  text-align:center;
+  padding:0.55rem;
+  border-radius:8px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  font-size:0.72rem;
+  letter-spacing:0.08em;
+  font-weight:bold;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.warn-light.active{
+  background:var(--red-warn);
+  border-color:var(--red-warn);
+  color:#fff;
+  animation:warnFlash 0.3s infinite;
+}
+@keyframes warnFlash{0%,100%{opacity:1;}50%{opacity:0.45;}}
+ 
+.status-bar{
+  text-align:center;
+  font-family:'Courier New',monospace;
+  color:var(--amber);
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:0.6rem;
+  margin-bottom:1.5rem;
+  font-size:0.85rem;
+  letter-spacing:0.06em;
+}
+ 
+.controls{
+  display:flex;
+  gap:1rem;
+  justify-content:center;
+  align-items:center;
+}
+.start-btn{
+  background:var(--panel-light);
+  border:2px solid var(--border);
+  color:var(--text);
+  padding:1rem 1.2rem;
+  border-radius:10px;
+  font-weight:bold;
+  font-size:0.85rem;
+  letter-spacing:0.04em;
+  cursor:pointer;
+  touch-action:manipulation;
+  transition:border-color .2s;
+}
+.start-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.gas-btn{
+  flex:1;
+  max-width:200px;
+  height:64px;
+  background:linear-gradient(180deg,var(--amber),#cc7700);
+  border:none;
+  border-radius:10px;
+  color:#1a1206;
+  font-weight:900;
+  font-size:1.05rem;
+  letter-spacing:0.1em;
+  cursor:pointer;
+  touch-action:manipulation;
+  box-shadow:0 6px 0 #8a5800,0 10px 16px rgba(0,0,0,0.4);
+  transition:transform .08s,box-shadow .08s;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.gas-btn.pressed{
+  transform:translateY(6px);
+  box-shadow:0 0 0 #8a5800,0 4px 8px rgba(0,0,0,0.4);
+}
+.gas-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:0 6px 0 #8a5800,0 10px 16px rgba(0,0,0,0.4);}
+ 
+footer{text-align:center;padding:3rem 1.5rem 4rem;}
+.footer-title{color:var(--cyan);letter-spacing:0.08em;font-weight:bold;font-size:0.88rem;margin-bottom:0.4rem;}
+.footer-sub{color:var(--text-dim);font-size:0.76rem;}
+ 
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:0.01ms!important;animation-iteration-count:1!important;}
+}
+</style>
+</head>
+<body>
+ 
+<header class="hero">
+  <h1>ВИРТУАЛЬНЫЙ<br>КОКПИТ</h1>
+  <p class="subtitle">KIA K5 · BMW E34 · MERCEDES SPRINTER</p>
+  <a href="#cockpit" class="scroll-hint">▼</a>
+</header>
+ 
+<section id="cockpit">
+  <h2>КОКПИТ</h2>
+ 
+  <div class="car-tabs">
+    <button class="car-tab active" data-key="kia">
+      <svg class="car-icon" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 45 Q15 25 35 22 L50 12 Q60 8 75 12 L95 22 Q110 25 112 40 L112 45 Z" fill="currentColor"/>
+        <circle cx="30" cy="47" r="8" fill="#0a0c10"/>
+        <circle cx="90" cy="47" r="8" fill="#0a0c10"/>
+      </svg>
+      <span>KIA K5</span>
+    </button>
+    <button class="car-tab" data-key="bmw">
+      <svg class="car-icon" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 45 L14 24 L38 24 L46 12 L78 12 L86 24 L110 24 L112 45 Z" fill="currentColor"/>
+        <circle cx="30" cy="47" r="8" fill="#0a0c10"/>
+        <circle cx="90" cy="47" r="8" fill="#0a0c10"/>
+      </svg>
+      <span>BMW E34</span>
+    </button>
+    <button class="car-tab" data-key="sprinter">
+      <svg class="car-icon" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 45 L8 16 Q8 10 16 10 L100 10 Q112 10 112 22 L112 45 Z" fill="currentColor"/>
+        <rect x="14" y="16" width="20" height="16" fill="#0a0c10" opacity="0.5"/>
+        <circle cx="28" cy="47" r="8" fill="#0a0c10"/>
+        <circle cx="92" cy="47" r="8" fill="#0a0c10"/>
+      </svg>
+      <span>SPRINTER</span>
+    </button>
+  </div>
+ 
+  <div class="dash">
+    <div class="vehicle-info">
+      <div class="vehicle-name" id="vehicleName">KIA K5 2017</div>
+      <div class="vehicle-sub" id="vehicleSub">Бензин · 2.0 л</div>
+    </div>
+ 
+    <div class="gauges-row">
+      <svg class="gauge" id="tachGauge" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <circle class="gauge-face" cx="100" cy="100" r="90"/>
+        <path class="redline-arc" id="tachRedline" d=""/>
+        <g class="ticks" id="tachTicks"></g>
+        <text class="gauge-unit" x="100" y="145" text-anchor="middle">x1000 об/мин</text>
+        <line class="needle" id="tachNeedle" x1="100" y1="100" x2="100" y2="25"/>
+        <circle class="needle-cap" cx="100" cy="100" r="6"/>
+      </svg>
+      <svg class="gauge" id="speedGauge" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <circle class="gauge-face" cx="100" cy="100" r="90"/>
+        <g class="ticks" id="speedTicks"></g>
+        <text class="gauge-unit" x="100" y="145" text-anchor="middle">км/ч</text>
+        <line class="needle" id="speedNeedle" x1="100" y1="100" x2="100" y2="25"/>
+        <circle class="needle-cap" cx="100" cy="100" r="6"/>
+      </svg>
+    </div>
+ 
+    <div class="digital-cluster">
+      <div class="digi-block">
+        <div class="digi-label">ПЕРЕДАЧА</div>
+        <div class="digi-value" id="gearDigital">N</div>
+      </div>
+      <div class="digi-block">
+        <div class="digi-label">ПРОБЕГ ЗА ПОЕЗДКУ</div>
+        <div class="digi-value small" id="odoDigital">0.00 км</div>
+      </div>
+      <div class="warn-light" id="redlineWarn">ПРЕДЕЛ ОБОРОТОВ</div>
+    </div>
+ 
+    <div class="status-bar" id="statusEl">ДВИГАТЕЛЬ ВЫКЛЮЧЕН</div>
+ 
+    <div class="controls">
+      <button class="start-btn" id="startBtn">СТАРТ</button>
+      <button class="gas-btn" id="gasBtn" disabled><span>ГАЗ</span></button>
+    </div>
+  </div>
+</section>
+ 
+<footer>
+  <p class="footer-title">ТРИ МАШИНЫ. ОДИН ДВИЖОК В БРАУЗЕРЕ.</p>
+  <p class="footer-sub">Звук синтезируется в реальном времени — без сэмплов</p>
+</footer>
+ 
+<script>
+(function(){
+ 
+  const VEHICLES={
+    kia:{name:'KIA K5 2017',subtitle:'Бензин · 2.0 л, 4 цил.',cylinders:4,idleRpm:800,redline:6500,topSpeed:210,diesel:false},
+    bmw:{name:'BMW E34 1992',subtitle:'Бензин · 6 цил.',cylinders:6,idleRpm:750,redline:6000,topSpeed:205,diesel:false},
+    sprinter:{name:'Mercedes Sprinter 1998',subtitle:'Дизель · 5 цил., фургон',cylinders:5,idleRpm:700,redline:4200,topSpeed:140,diesel:true}
+  };
+ 
+  const GSTART=-120, GEND=120;
+  function polar(cx,cy,r,thetaDeg){
+    const rad=thetaDeg*Math.PI/180;
+    return {x:cx+r*Math.sin(rad), y:cy-r*Math.cos(rad)};
+  }
+  function valueToTheta(value,max){
+    const c=Math.max(0,Math.min(max,value));
+    return GSTART+(c/max)*(GEND-GSTART);
+  }
+  function buildTicks(groupEl,max,majorStep,minorStep){
+    groupEl.innerHTML='';
+    for(let v=0;v<=max;v+=majorStep){
+      const theta=valueToTheta(v,max);
+      const outer=polar(100,100,84,theta);
+      const inner=polar(100,100,72,theta);
+      const label=polar(100,100,58,theta);
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',inner.x);line.setAttribute('y1',inner.y);
+      line.setAttribute('x2',outer.x);line.setAttribute('y2',outer.y);
+      line.setAttribute('class','tick-major');
+      groupEl.appendChild(line);
+      const text=document.createElementNS('http://www.w3.org/2000/svg','text');
+      text.setAttribute('x',label.x);text.setAttribute('y',label.y);
+      text.setAttribute('class','tick-label');
+      text.setAttribute('text-anchor','middle');
+      text.setAttribute('dominant-baseline','middle');
+      text.textContent=Math.round(v);
+      groupEl.appendChild(text);
+      if(minorStep && v<max){
+        for(let mv=v+minorStep;mv<Math.min(v+majorStep,max);mv+=minorStep){
+          const mtheta=valueToTheta(mv,max);
+          const mouter=polar(100,100,84,mtheta);
+          const minner=polar(100,100,78,mtheta);
+          const mline=document.createElementNS('http://www.w3.org/2000/svg','line');
+          mline.setAttribute('x1',minner.x);mline.setAttribute('y1',minner.y);
+          mline.setAttribute('x2',mouter.x);mline.setAttribute('y2',mouter.y);
+          mline.setAttribute('class','tick-minor');
+          groupEl.appendChild(mline);
+        }
+      }
+    }
+  }
+  function buildRedlineArc(pathEl,max,redlineStart){
+    const t1=valueToTheta(redlineStart,max);
+    const t2=GEND;
+    const p1=polar(100,100,84,t1);
+    const p2=polar(100,100,84,t2);
+    const largeArc=(t2-t1)>180?1:0;
+    pathEl.setAttribute('d','M '+p1.x+' '+p1.y+' A 84 84 0 '+largeArc+' 1 '+p2.x+' '+p2.y);
+  }
+  function setNeedle(needleEl,value,max){
+    const theta=valueToTheta(value,max);
+    needleEl.setAttribute('transform','rotate('+theta+' 100 100)');
+  }
+ 
+  const tachTicks=document.getElementById('tachTicks');
+  const speedTicks=document.getElementById('speedTicks');
+  const tachRedline=document.getElementById('tachRedline');
+  const tachNeedle=document.getElementById('tachNeedle');
+  const speedNeedle=document.getElementById('speedNeedle');
+  const vehicleName=document.getElementById('vehicleName');
+  const vehicleSub=document.getElementById('vehicleSub');
+  const gearDigital=document.getElementById('gearDigital');
+  const odoDigital=document.getElementById('odoDigital');
+  const redlineWarn=document.getElementById('redlineWarn');
+  const statusEl=document.getElementById('statusEl');
+  const startBtn=document.getElementById('startBtn');
+  const gasBtn=document.getElementById('gasBtn');
+ 
+  buildTicks(tachTicks,8,1,null);
+  buildTicks(speedTicks,240,40,20);
+ 
+  let sharedCtx=null;
+  function getCtx(){
+    if(!sharedCtx) sharedCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(sharedCtx.state==='suspended') sharedCtx.resume();
+    return sharedCtx;
+  }
+  function playStartSound(ctx){
+    const now=ctx.currentTime;
+    const starter=ctx.createOscillator();
+    starter.type='square';
+    starter.frequency.setValueAtTime(70,now);
+    starter.frequency.linearRampToValueAtTime(150,now+0.55);
+    const sg=ctx.createGain();
+    sg.gain.setValueAtTime(0.07,now);
+    sg.gain.setValueAtTime(0.07,now+0.55);
+    sg.gain.linearRampToValueAtTime(0,now+0.7);
+    starter.connect(sg).connect(ctx.destination);
+    starter.start(now);
+    starter.stop(now+0.75);
+  }
+ 
+  class EngineAudio{
+    constructor(profile,ctx){
+      this.profile=profile;
+      this.ctx=ctx;
+      this.running=false;
+    }
+    start(){
+      const ctx=this.ctx;
+      this.osc1=ctx.createOscillator();
+      this.osc1.type=this.profile.diesel?'square':'sawtooth';
+      this.osc2=ctx.createOscillator();
+      this.osc2.type='sawtooth';
+      this.osc2.detune.value=6;
+      this.filter=ctx.createBiquadFilter();
+      this.filter.type='lowpass';
+      this.filter.Q.value=this.profile.diesel?2:1;
+      this.gain=ctx.createGain();
+      this.gain.gain.value=0;
+      this.osc1.connect(this.filter);
+      this.osc2.connect(this.filter);
+      this.filter.connect(this.gain);
+ 
+      if(this.profile.diesel){
+        const bufferSize=ctx.sampleRate*2;
+        const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
+        const data=buffer.getChannelData(0);
+        for(let i=0;i<bufferSize;i++){data[i]=Math.random()*2-1;}
+        this.noise=ctx.createBufferSource();
+        this.noise.buffer=buffer;
+        this.noise.loop=true;
+        this.noiseFilter=ctx.createBiquadFilter();
+        this.noiseFilter.type='bandpass';
+        this.noiseFilter.frequency.value=900;
+        this.noiseFilter.Q.value=0.7;
+        this.noiseGain=ctx.createGain();
+        this.noiseGain.gain.value=0.03;
+        this.noise.connect(this.noiseFilter).connect(this.noiseGain).connect(this.gain);
+        this.noise.start();
+      }
+ 
+      this.gain.connect(ctx.destination);
+      this.osc1.start();
+      this.osc2.start();
+      this.running=true;
+      this.gain.gain.setTargetAtTime(this.profile.diesel?0.11:0.14, ctx.currentTime, 0.25);
+    }
+    update(rpm,throttle){
+      if(!this.running) return;
+      const order=this.profile.cylinders/2;
+      const baseFreq=Math.max(28,(rpm/60)*order*(this.profile.diesel?0.85:1));
+      const now=this.ctx.currentTime;
+      this.osc1.frequency.setTargetAtTime(baseFreq,now,0.04);
+      this.osc2.frequency.setTargetAtTime(baseFreq*1.5,now,0.04);
+      const cutoff=250+(rpm/this.profile.redline)*2800+throttle*700;
+      this.filter.frequency.setTargetAtTime(cutoff,now,0.08);
+      let vol=(this.profile.diesel?0.1:0.13)+throttle*0.07;
+      if(rpm>=this.profile.redline){
+        const stutter=(Math.floor(performance.now()/45)%2===0)?1:0.15;
+        vol*=stutter;
+      }
+      this.gain.gain.setTargetAtTime(vol,now,0.03);
+      if(this.noiseGain){
+        this.noiseGain.gain.setTargetAtTime(0.025+throttle*0.045,now,0.1);
+      }
+    }
+    stop(){
+      if(!this.running) return;
+      const now=this.ctx.currentTime;
+      this.gain.gain.setTargetAtTime(0,now,0.12);
+      const o1=this.osc1,o2=this.osc2,nz=this.noise;
+      setTimeout(function(){
+        try{o1.stop();}catch(e){}
+        try{o2.stop();}catch(e){}
+        if(nz){try{nz.stop();}catch(e){}}
+      },500);
+      this.running=false;
+    }
+  }
+ 
+  function vibrate(pattern){
+    if(navigator.vibrate) navigator.vibrate(pattern);
+  }
+ 
+  let engineAudio=null;
+  const state={running:false,rpm:0,speed:0,throttle:0,gear:0,odometer:0,currentVehicleKey:'kia',wasOverRev:false,lastGear:0};
+ 
+  function updateVehicleDisplay(key){
+    const v=VEHICLES[key];
+    vehicleName.textContent=v.name;
+    vehicleSub.textContent=v.subtitle;
+    buildRedlineArc(tachRedline,8,v.redline/1000);
+    document.querySelectorAll('.car-tab').forEach(function(t){
+      t.classList.toggle('active',t.dataset.key===key);
+    });
+  }
+ 
+  function selectVehicle(key){
+    if(key===state.currentVehicleKey) return;
+    state.currentVehicleKey=key;
+    updateVehicleDisplay(key);
+    state.throttle=0;
+    gasBtn.classList.remove('pressed');
+    if(state.running){
+      statusEl.textContent='ПЕРЕКЛЮЧЕНИЕ...';
+      engineAudio.stop();
+      startBtn.disabled=true;
+      gasBtn.disabled=true;
+      setTimeout(function(){
+        const ctx=getCtx();
+        engineAudio=new EngineAudio(VEHICLES[key],ctx);
+        engineAudio.start();
+        statusEl.textContent='ДВИГАТЕЛЬ РАБОТАЕТ';
+        startBtn.disabled=false;
+        gasBtn.disabled=false;
+      },550);
+      state.rpm=VEHICLES[key].idleRpm;
+    } else {
+      state.rpm=0;
+    }
+    state.speed=0;
+  }
+ 
+  document.querySelectorAll('.car-tab').forEach(function(tab){
+    tab.addEventListener('click',function(){selectVehicle(tab.dataset.key);});
+  });
+ 
+  startBtn.addEventListener('click',function(){
+    const ctx=getCtx();
+    if(!state.running){
+      playStartSound(ctx);
+      statusEl.textContent='ЗАПУСК...';
+      startBtn.disabled=true;
+      setTimeout(function(){
+        state.running=true;
+        engineAudio=new EngineAudio(VEHICLES[state.currentVehicleKey],ctx);
+        engineAudio.start();
+        startBtn.textContent='ГЛУШИТЬ';
+        startBtn.disabled=false;
+        gasBtn.disabled=false;
+        statusEl.textContent='ДВИГАТЕЛЬ РАБОТАЕТ';
+      },700);
+    } else {
+      state.running=false;
+      state.throttle=0;
+      gasBtn.classList.remove('pressed');
+      gasBtn.disabled=true;
+      if(engineAudio) engineAudio.stop();
+      startBtn.textContent='СТАРТ';
+      statusEl.textContent='ДВИГАТЕЛЬ ВЫКЛЮЧЕН';
+    }
+  });
+ 
+  function startGas(){
+    if(!state.running) return;
+    state.throttle=1;
+    gasBtn.classList.add('pressed');
+  }
+  function stopGas(){
+    state.throttle=0;
+    gasBtn.classList.remove('pressed');
+  }
+  gasBtn.addEventListener('mousedown',startGas);
+  gasBtn.addEventListener('mouseup',stopGas);
+  gasBtn.addEventListener('mouseleave',stopGas);
+  gasBtn.addEventListener('touchstart',function(e){e.preventDefault();startGas();},{passive:false});
+  gasBtn.addEventListener('touchend',function(e){e.preventDefault();stopGas();});
+  gasBtn.addEventListener('touchcancel',stopGas);
+ 
+  let lastTime=performance.now();
+  function tick(now){
+    const dt=Math.min(0.1,(now-lastTime)/1000);
+    lastTime=now;
+    const v=VEHICLES[state.currentVehicleKey];
+ 
+    const targetRpm=state.running?(state.throttle?v.redline*1.02:v.idleRpm):0;
+    state.rpm+=(targetRpm-state.rpm)*Math.min(1,dt*3.5);
+    if(state.rpm<0.5) state.rpm=0;
+ 
+    const targetSpeed=state.running?Math.min(v.topSpeed,(state.rpm/v.redline)*v.topSpeed*(state.throttle?1:0.25)):0;
+    state.speed+=(targetSpeed-state.speed)*Math.min(1,dt*1.5);
+    if(state.speed<0.3) state.speed=0;
+ 
+    if(!state.running||state.speed<1){
+      state.gear=0;
+    } else {
+      const ratio=state.speed/v.topSpeed;
+      state.gear=Math.min(6,1+Math.floor(ratio*6));
+    }
+    if(state.gear!==state.lastGear && state.gear>0){
+      vibrate(15);
+    }
+    state.lastGear=state.gear;
+ 
+    if(state.running){
+      state.odometer+=(state.speed*dt)/3600;
+    }
+ 
+    setNeedle(tachNeedle,state.rpm/1000,8);
+    setNeedle(speedNeedle,state.speed,240);
+ 
+    const overRev=state.rpm>=v.redline;
+    tachNeedle.classList.toggle('danger',overRev);
+    redlineWarn.classList.toggle('active',overRev);
+    if(overRev && !state.wasOverRev) vibrate(40);
+    state.wasOverRev=overRev;
+ 
+    gearDigital.textContent=state.gear===0?'N':state.gear;
+    odoDigital.textContent=state.odometer.toFixed(2)+' км';
+ 
+    if(engineAudio && engineAudio.running){
+      engineAudio.update(state.rpm,state.throttle);
+    }
+ 
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+ 
+  updateVehicleDisplay('kia');
+})();
+</script>
+</body>
+</html>
